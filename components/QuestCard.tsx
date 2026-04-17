@@ -18,6 +18,7 @@ interface QuestCardProps {
   quest: Quest;
   completed: boolean;
   onComplete: (questId: string) => void;
+  twitterHandle?: string;
   walletConnected: boolean;
   isNew?: boolean;
   index?: number;
@@ -42,6 +43,7 @@ export default function QuestCard({
   walletConnected,
   isNew,
   index = 0,
+  twitterHandle,
 }: QuestCardProps) {
   const colors = CATEGORY_COLORS[quest.category];
 

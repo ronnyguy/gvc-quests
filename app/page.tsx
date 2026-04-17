@@ -298,6 +298,7 @@ function QuestCard({ quest, state, locked, index, onSubmit }: QuestCardProps) {
 
 export default function Home() {
   const [setup, setSetup] = useState<SetupState>({ x: false, discord: false });
+  const [twitterHandle, setTwitterHandle] = useState<string>("");
   const [questStates, setQuestStates] = useState<Record<string, QuestState>>({});
   const [walletAddress, setWalletAddress] = useState("");
   const [walletInput, setWalletInput] = useState("");
@@ -561,7 +562,7 @@ export default function Home() {
                 </span>
               ) : (
                 <button
-                  onClick={() => completeSetup("x")}
+                  onClick={() => completeSetup("x"); setTwitterHandle(walletInput.replace("@","").trim())}
                   className="px-4 py-2 rounded-xl bg-gvc-gold text-gvc-black font-display font-bold text-xs hover:shadow-[0_0_16px_rgba(255,224,72,0.3)] transition-all"
                 >
                   Connect
