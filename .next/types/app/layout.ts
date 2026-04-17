@@ -1,4 +1,4 @@
-// File: /Users/connortoolson/my-gvc-quest/app/layout.tsx
+// File: /Users/connortoolson/gvc-quests/app/layout.tsx
 import * as entry from '../../../app/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
