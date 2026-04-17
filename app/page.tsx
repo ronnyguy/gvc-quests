@@ -153,17 +153,19 @@ interface QuestCardProps {
   state: QuestState;
   locked: boolean;
   index: number;
+  twitterHandle: string;
   onSubmit: (id: string, urls: Record<string, string>) => void;
 }
 
-function QuestCard({ quest, state, locked, index, onSubmit }: QuestCardProps) {
+function QuestCard({ quest, state, locked, index, twitterHandle, onSubmit }: QuestCardProps) {
   const [urls, setUrls] = useState<Record<string, string>>(state.urls ?? {});
   const [expanded, setExpanded] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const allFilled = quest.urlFields.every((f) => urls[f.key]?.trim());
   const isSubmitted = state.status === "pending" || state.status === "verified";
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!allFilled) {
       toast.error("Fill in all URL fields before submitting.");
       return;
@@ -175,6 +177,28 @@ function QuestCard({ quest, state, locked, index, onSubmit }: QuestCardProps) {
         return;
       }
     }
+    setSubmitting(true);
+    for (const f of quest.urlFields) {
+      const tweetUrl = urls[f.key]?.trim();
+      try {
+        const res = await fetch("/api/verify-quest", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tweetUrl, expectedHandle: twitterHandle }),
+        });
+        const data = await res.json();
+        if (!data.verified) {
+          toast.error(data.error || "Tweet verification failed.");
+          setSubmitting(false);
+          return;
+        }
+      } catch {
+        toast.error("Verification failed. Please try again.");
+        setSubmitting(false);
+        return;
+      }
+    }
+    setSubmitting(false);
     onSubmit(quest.id, urls);
   }
 
@@ -274,10 +298,10 @@ function QuestCard({ quest, state, locked, index, onSubmit }: QuestCardProps) {
               {!isSubmitted && (
                 <button
                   onClick={handleSubmit}
-                  disabled={!allFilled}
+                  disabled={!allFilled || submitting}
                   className="w-full py-3 rounded-xl bg-gvc-gold text-gvc-black font-display font-bold text-sm mt-1 hover:shadow-[0_0_20px_rgba(255,224,72,0.3)] transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:shadow-none"
                 >
-                  Submit for Review
+                  {submitting ? "Verifying…" : "Submit for Review"}
                 </button>
               )}
 
@@ -299,6 +323,7 @@ function QuestCard({ quest, state, locked, index, onSubmit }: QuestCardProps) {
 export default function Home() {
   const [setup, setSetup] = useState<SetupState>({ x: false, discord: false });
   const [twitterHandle, setTwitterHandle] = useState<string>("");
+  const [twitterInput, setTwitterInput] = useState("");
   const [questStates, setQuestStates] = useState<Record<string, QuestState>>({});
   const [walletAddress, setWalletAddress] = useState("");
   const [walletInput, setWalletInput] = useState("");
@@ -558,15 +583,25 @@ export default function Home() {
               </div>
               {setup.x ? (
                 <span className="flex items-center gap-1.5 text-gvc-green text-xs font-semibold font-body">
-                  <CheckCircle className="w-3.5 h-3.5" /> Connected
+                  <CheckCircle className="w-3.5 h-3.5" /> @{twitterHandle}
                 </span>
               ) : (
-                <button
-                  onClick={() => completeSetup("x"); setTwitterHandle(walletInput.replace("@","").trim())}
-                  className="px-4 py-2 rounded-xl bg-gvc-gold text-gvc-black font-display font-bold text-xs hover:shadow-[0_0_16px_rgba(255,224,72,0.3)] transition-all"
-                >
-                  Connect
-                </button>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={twitterInput}
+                    onChange={(e) => setTwitterInput(e.target.value)}
+                    placeholder="@yourhandle"
+                    className="w-32 bg-black/40 border border-white/[0.10] rounded-xl px-3 py-1.5 font-mono text-xs text-white placeholder-white/20 focus:outline-none focus:border-gvc-gold/40 transition-colors"
+                  />
+                  <button
+                    onClick={() => { completeSetup("x"); setTwitterHandle(twitterInput.replace("@", "").trim()); }}
+                    disabled={!twitterInput.trim()}
+                    className="px-4 py-2 rounded-xl bg-gvc-gold text-gvc-black font-display font-bold text-xs hover:shadow-[0_0_16px_rgba(255,224,72,0.3)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    Connect
+                  </button>
+                </div>
               )}
             </div>
 
@@ -651,6 +686,7 @@ export default function Home() {
                 state={questStates[quest.id] ?? { status: "open", urls: {} }}
                 locked={!setupComplete}
                 index={i}
+                twitterHandle={twitterHandle}
                 onSubmit={submitQuest}
               />
             ))}
