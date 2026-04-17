@@ -4,11 +4,11 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import { CheckCircle, Clock, ExternalLink, Lock, Trophy } from "lucide-react";
+import { CheckCircle, ExternalLink, Lock, Trophy } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type QuestStatus = "open" | "pending" | "verified";
+type QuestStatus = "open" | "verified";
 
 interface UrlField {
   key: string;
@@ -135,12 +135,6 @@ function StatusBadge({ status }: { status: QuestStatus }) {
         <CheckCircle className="w-3 h-3" /> Verified
       </span>
     );
-  if (status === "pending")
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-body font-semibold bg-gvc-gold/10 text-gvc-gold border border-gvc-gold/20">
-        <Clock className="w-3 h-3" /> Pending Review
-      </span>
-    );
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-body font-semibold bg-white/5 text-white/40 border border-white/[0.08]">
       Open
@@ -163,7 +157,7 @@ function QuestCard({ quest, state, locked, index, twitterHandle, onSubmit }: Que
   const [submitting, setSubmitting] = useState(false);
 
   const allFilled = quest.urlFields.every((f) => urls[f.key]?.trim());
-  const isSubmitted = state.status === "pending" || state.status === "verified";
+  const isSubmitted = state.status === "verified";
 
   async function handleSubmit() {
     if (!allFilled) {
@@ -212,8 +206,6 @@ function QuestCard({ quest, state, locked, index, twitterHandle, onSubmit }: Que
         ${
           state.status === "verified"
             ? "bg-gvc-dark border-gvc-gold/25 card-glow"
-            : state.status === "pending"
-            ? "bg-gvc-dark border-gvc-gold/15"
             : "bg-gvc-dark border-white/[0.08] hover:border-white/15"
         }`}
     >
@@ -301,15 +293,10 @@ function QuestCard({ quest, state, locked, index, twitterHandle, onSubmit }: Que
                   disabled={!allFilled || submitting}
                   className="w-full py-3 rounded-xl bg-gvc-gold text-gvc-black font-display font-bold text-sm mt-1 hover:shadow-[0_0_20px_rgba(255,224,72,0.3)] transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:shadow-none"
                 >
-                  {submitting ? "Verifying…" : "Submit for Review"}
+                  {submitting ? "Verifying…" : "Verify & Submit"}
                 </button>
               )}
 
-              {state.status === "pending" && (
-                <p className="text-center text-white/30 font-body text-xs">
-                  Submitted — our team will verify within 24h
-                </p>
-              )}
             </div>
           </motion.div>
         )}
@@ -366,15 +353,15 @@ export default function Home() {
   function submitQuest(id: string, urls: Record<string, string>) {
     const next: Record<string, QuestState> = {
       ...questStates,
-      [id]: { status: "pending", urls, submittedAt: Date.now() },
+      [id]: { status: "verified", urls, submittedAt: Date.now() },
     };
     setQuestStates(next);
     localStorage.setItem(QUEST_KEY, JSON.stringify(next));
-    toast.success("Submitted for review!", {
+    toast.success("Quest verified! ✓", {
       style: {
-        background: "#1a1400",
-        border: "1px solid rgba(255,224,72,0.3)",
-        color: "#FFE048",
+        background: "#001a00",
+        border: "1px solid rgba(46,255,46,0.3)",
+        color: "#2EFF2E",
       },
     });
   }
@@ -391,15 +378,8 @@ export default function Home() {
     toast.success("Wallet connected!");
   }
 
-  const pendingCount = Object.values(questStates).filter((s) => s.status === "pending").length;
   const verifiedCount = Object.values(questStates).filter((s) => s.status === "verified").length;
-  const allSubmitted =
-    setupComplete &&
-    WEEK1_QUESTS.every(
-      (q) =>
-        questStates[q.id]?.status === "pending" ||
-        questStates[q.id]?.status === "verified"
-    );
+  const allSubmitted = setupComplete && WEEK1_QUESTS.every((q) => questStates[q.id]?.status === "verified");
 
   const elapsed =
     weekStartTime && allSubmitted
@@ -664,7 +644,7 @@ export default function Home() {
             )}
             {setupComplete && (
               <span className="text-white/30 font-body text-sm ml-auto">
-                {verifiedCount + pendingCount}/4 submitted
+                {verifiedCount}/4 verified
               </span>
             )}
           </div>
