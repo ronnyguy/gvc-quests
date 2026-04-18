@@ -3,12 +3,14 @@ import crypto from 'crypto';
 
 // ── Vision prompts per quest ID ────────────────────────────────────────────────
 const VISION_PROMPTS = {
-  'weekly-activation':
-    'Does this image show an AI-generated full body character in a stylized digital art style? Answer Yes or No first, then explain briefly.',
-  'rt-comment-2':
-    'Does this image show a character in a T-pose with arms extended horizontally? Answer Yes or No first, then explain briefly.',
-  'full-body-pose':
-    'Does this image show a character placed in a scene or environment — not just a plain character on a white or plain background? Answer Yes or No first, then explain briefly.',
+  't-pose':
+    'Does this image show a character in a T-pose with both arms extended horizontally outward from the body? Answer Yes or No and explain why.',
+  'beach-scene':
+    'Does this image show a character placed in a beach or ocean scene with sand, water, waves, or coastal elements clearly visible in the background? Answer Yes or No and explain why.',
+  'neon-city':
+    'Does this image show a character in an urban nighttime scene with city lights, neon signs, buildings, or a cityscape visible in the background? Answer Yes or No and explain why.',
+  'space-scene':
+    'Does this image show a character in a space or cosmic scene with stars, planets, galaxies, or a space environment clearly visible in the background? Answer Yes or No and explain why.',
 };
 
 // Module-level fallback when Vercel KV is not configured

@@ -39,25 +39,10 @@ interface SetupState {
 
 const WEEK1_QUESTS: WeekQuest[] = [
   {
-    id: "rt-space",
-    title: "RT the GV&C Space",
+    id: "t-pose",
+    title: "T-Pose Your GVC",
     description:
-      "RT the weekly Thursday Space post from @GoodVibesClub. Submit the URL of your retweet to verify.",
-    hint: "Find the Space post on @GoodVibesClub and hit Retweet.",
-    urlFields: [
-      {
-        key: "tweet",
-        label: "Your retweet URL",
-        placeholder: "https://x.com/yourhandle/status/...",
-      },
-    ],
-  },
-  {
-    id: "weekly-activation",
-    title: "Weekly Activation",
-    description:
-      "Participate in the team's weekly prompt. Details revealed each week. Submit the URL of your post.",
-    hint: "Check @GoodVibesClub for this week's prompt.",
+      "Generate a T-pose of your GVC character using The Prompt Machine at prompt-gallery-theta.vercel.app. Post it on Twitter tagging @GoodVibesClub and submit the URL.",
     urlFields: [
       {
         key: "post",
@@ -67,29 +52,36 @@ const WEEK1_QUESTS: WeekQuest[] = [
     ],
   },
   {
-    id: "rt-comment-2",
-    title: "RT + Comment on 2 GVC Posts",
+    id: "beach-scene",
+    title: "Beach Vibes",
     description:
-      "RT and leave a comment on 2 separate posts from @GoodVibesClub. Submit both tweet URLs.",
+      "Take your GVC character and place them in a beach scene using The Prompt Machine. Post it on Twitter tagging @GoodVibesClub and submit the URL.",
     urlFields: [
       {
-        key: "tweet1",
-        label: "First tweet URL",
-        placeholder: "https://x.com/yourhandle/status/...",
-      },
-      {
-        key: "tweet2",
-        label: "Second tweet URL",
+        key: "post",
+        label: "Your post URL",
         placeholder: "https://x.com/yourhandle/status/...",
       },
     ],
   },
   {
-    id: "full-body-pose",
-    title: "Full Body Pose",
+    id: "neon-city",
+    title: "Neon City",
     description:
-      "Get your GVC Citizen into the weekly scene. Post it on X tagging @GoodVibesClub and submit your post URL.",
-    hint: "Tag @GoodVibesClub in your post so it gets seen.",
+      "Place your GVC character in a city at night scene with neon lights using The Prompt Machine. Post it on Twitter tagging @GoodVibesClub and submit the URL.",
+    urlFields: [
+      {
+        key: "post",
+        label: "Your post URL",
+        placeholder: "https://x.com/yourhandle/status/...",
+      },
+    ],
+  },
+  {
+    id: "space-scene",
+    title: "Into the Cosmos",
+    description:
+      "Put your GVC character in a space scene — floating among stars and cosmos — using The Prompt Machine. Post it on Twitter tagging @GoodVibesClub and submit the URL.",
     urlFields: [
       {
         key: "post",
