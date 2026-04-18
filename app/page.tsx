@@ -148,10 +148,11 @@ interface QuestCardProps {
   locked: boolean;
   index: number;
   twitterHandle: string;
+  walletAddress: string;
   onSubmit: (id: string, urls: Record<string, string>) => void;
 }
 
-function QuestCard({ quest, state, locked, index, twitterHandle, onSubmit }: QuestCardProps) {
+function QuestCard({ quest, state, locked, index, twitterHandle, walletAddress, onSubmit }: QuestCardProps) {
   const [urls, setUrls] = useState<Record<string, string>>(state.urls ?? {});
   const [expanded, setExpanded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -178,7 +179,7 @@ function QuestCard({ quest, state, locked, index, twitterHandle, onSubmit }: Que
         const res = await fetch("/api/verify-quest", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tweetUrl, expectedHandle: twitterHandle }),
+          body: JSON.stringify({ tweetUrl, expectedHandle: twitterHandle, questId: quest.id, walletAddress }),
         });
         const data = await res.json();
         if (!data.verified) {
@@ -667,6 +668,7 @@ export default function Home() {
                 locked={!setupComplete}
                 index={i}
                 twitterHandle={twitterHandle}
+                walletAddress={walletAddress}
                 onSubmit={submitQuest}
               />
             ))}
