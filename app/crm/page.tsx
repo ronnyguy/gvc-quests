@@ -30,7 +30,7 @@ type TeamMember = "chris" | "ty" | "ronnie" | "maison";
 const TEAM: { id: TeamMember; name: string; avatar: string }[] = [
   { id: "chris",  name: "Chris",  avatar: "🎯" },
   { id: "ty",     name: "Ty",     avatar: "🌊" },
-  { id: "ronnie", name: "Ronnie", avatar: "⚡" },
+  { id: "ronnie", name: "Ronny", avatar: "⚡" },
   { id: "maison", name: "Maison", avatar: "🎨" },
 ];
 
