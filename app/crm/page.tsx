@@ -4,12 +4,12 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import {
-  Users, Zap, Search, X, Copy, Check, ChevronDown,
-  Bell, Twitter, Hash, Crown, Smile
+  Users, Search, X, Copy, Check, ChevronDown,
+  Twitter, ExternalLink, Pencil, TrendingUp, Crown,
+  RefreshCw, AlertCircle
 } from "lucide-react";
 
 // ─── GIF Library ─────────────────────────────────────────────────────────────
-
 const GIF_LIBRARY = [
   { id: "2F9NoLzsg9RgBSE10X", label: "Buzzd",       url: "https://media.giphy.com/media/2F9NoLzsg9RgBSE10X/giphy.gif" },
   { id: "ygxlakNTPSHgV3k7m0", label: "Love",        url: "https://media.giphy.com/media/ygxlakNTPSHgV3k7m0/giphy.gif" },
@@ -24,22 +24,28 @@ const GIF_LIBRARY = [
 ];
 
 // ─── Team Config ──────────────────────────────────────────────────────────────
-
 type TeamMember = "chris" | "ty" | "ronnie" | "maison";
 
 const TEAM: { id: TeamMember; name: string; avatar: string }[] = [
   { id: "chris",  name: "Chris",  avatar: "🎯" },
   { id: "ty",     name: "Ty",     avatar: "🌊" },
-  { id: "ronnie", name: "Ronny", avatar: "⚡" },
+  { id: "ronnie", name: "Ronny",  avatar: "⚡" },
   { id: "maison", name: "Maison", avatar: "🎨" },
 ];
 
-// ─── Templates ───────────────────────────────────────────────────────────────
+// ─── Tier Config ──────────────────────────────────────────────────────────────
+const TIER_CONFIG = {
+  whale:     { label: "Whale",     color: "#FFE048", bg: "rgba(255,224,72,0.12)",  icon: "🐋",  min: 25,  desc: "25+ NFTs" },
+  core:      { label: "Core",      color: "#FF5F1F", bg: "rgba(255,95,31,0.12)",   icon: "💎",  min: 10,  desc: "10–24 NFTs" },
+  solid:     { label: "Solid",     color: "#2EFF2E", bg: "rgba(46,255,46,0.10)",   icon: "⚡",  min: 5,   desc: "5–9 NFTs" },
+  collector: { label: "Collector", color: "#888",    bg: "rgba(136,136,136,0.10)", icon: "✨",  min: 1,   desc: "1–4 NFTs" },
+};
+type HolderTier = keyof typeof TIER_CONFIG;
 
+// ─── Templates ───────────────────────────────────────────────────────────────
 interface TeamTemplate {
   id: string;
   name: string;
-  category: string;
   emoji: string;
   color: string;
   bodies: Record<TeamMember, string>;
@@ -49,7 +55,6 @@ const TEMPLATES: TeamTemplate[] = [
   {
     id: "welcome",
     name: "Welcome",
-    category: "welcome",
     emoji: "👋",
     color: "#2EFF2E",
     bodies: {
@@ -62,7 +67,6 @@ const TEMPLATES: TeamTemplate[] = [
   {
     id: "thankyou",
     name: "Thank You",
-    category: "thankyou",
     emoji: "🙏",
     color: "#FFE048",
     bodies: {
@@ -75,7 +79,6 @@ const TEMPLATES: TeamTemplate[] = [
   {
     id: "reactivate",
     name: "Re-activate",
-    category: "reactivate",
     emoji: "📡",
     color: "#FF6B9D",
     bodies: {
@@ -86,35 +89,20 @@ const TEMPLATES: TeamTemplate[] = [
     },
   },
   {
-    id: "praise",
-    name: "On Fire",
-    category: "praise",
-    emoji: "🔥",
-    color: "#FF5F1F",
-    bodies: {
-      chris:  "@{twitter} bro your vibe score is legit insane rn 🔥",
-      ty:     "can't deny the numbers @{twitter} — top tier energy 🔥",
-      ronnie: "@{twitter} vibe score {vibeScore}. that speaks for itself 🔥",
-      maison: "@{twitter} your energy is literally moving the whole community 🔥",
-    },
-  },
-  {
     id: "whale",
     name: "Whale Appreciation",
-    category: "gift",
     emoji: "🐋",
     color: "#7C3AED",
     bodies: {
-      chris:  "@{twitter} {gvcCount} GVCs. absolute conviction. we see you 👑",
-      ty:     "@{twitter} {gvcCount} strong. the foundation fr 🐋",
-      ronnie: "{gvcCount} GVCs @{twitter}. no cap, that's legendary 👑",
-      maison: "@{twitter} holding {gvcCount} like it's nothing 🐋 you're the backbone",
+      chris:  "@{twitter} {nfts} GVCs. absolute conviction. we see you 👑",
+      ty:     "@{twitter} {nfts} strong. the foundation fr 🐋",
+      ronnie: "{nfts} GVCs @{twitter}. no cap, that's legendary 👑",
+      maison: "@{twitter} holding {nfts} like it's nothing 🐋 you're the backbone",
     },
   },
   {
     id: "gift",
     name: "Gift Drop",
-    category: "gift",
     emoji: "🎁",
     color: "#06B6D4",
     bodies: {
@@ -124,124 +112,70 @@ const TEMPLATES: TeamTemplate[] = [
       maison: "@{twitter} something special is headed your way 👀 stay tuned 🎁",
     },
   },
+  {
+    id: "accumulator",
+    name: "Accumulator",
+    emoji: "📈",
+    color: "#2EFF2E",
+    bodies: {
+      chris:  "@{twitter} keep stacking 📈 we see every move",
+      ty:     "the conviction on @{twitter} is unmatched rn 📈",
+      ronnie: "@{twitter} buying mode activated. love to see it 📈",
+      maison: "@{twitter} the accumulation is real. vibetown notices 📈",
+    },
+  },
 ];
 
-// ─── Tier Config ──────────────────────────────────────────────────────────────
-
-const TIER_CONFIG = {
-  "whale-active":      { label: "Whale Active",     color: "#FFE048", bg: "rgba(255,224,72,0.12)",  icon: "🐋🔥", priority: "HIGH" },
-  "whale-passive":     { label: "Whale Passive",     color: "#FF6B9D", bg: "rgba(255,107,157,0.12)", icon: "🐋💤", priority: "RE-ENGAGE" },
-  "community-active":  { label: "Community Active",  color: "#2EFF2E", bg: "rgba(46,255,46,0.10)",   icon: "⚡",    priority: "GROWING" },
-  "community-passive": { label: "Community Passive", color: "#888",    bg: "rgba(136,136,136,0.10)", icon: "😴",    priority: "DORMANT" },
-};
-
-type HolderTier = keyof typeof TIER_CONFIG;
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-interface Holder {
-  wallet: string;
-  gvcCount: number;
+// ─── Types ────────────────────────────────────────────────────────────────────
+interface RawHolder {
+  rank: number;
+  address: string;
+  nfts: number;
   twitter: string;
-  discord: string;
-  vibeScore: number;
+  ens: string;
   tier: HolderTier;
-  lastActivity: string;
-  joined: string;
-  totalVolume: number;
-  recentBuys: number;
-  recentSells: number;
-  isNew: boolean;
-  tags: string[];
+  isAccumulating: boolean;
+  buysThisMonth: number;
 }
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-const TWITTER_HANDLES = [
-  "vibechad_eth","gvcmaxi","nftpulse","cryptovibe","holdergmc",
-  "wagmivibes","degenlife","ethereal_nft","vibetownresident","gvcog",
-  "nftwhale88","vibecheck_eth","cryptopunk_fan","blockchainbro","holderlife",
-  "web3wizard","nftcollector","vibemaximalist","gvcfam","ethereumgmc",
-  "alphavibes","nftguru","cryptomaxi","vibetownholder","gvclegend",
-  "defivibes","nftflipmaster","vibecommunity","gvcdiamondhand","cryptovibez",
-];
-
-const DISCORD_HANDLES = [
-  "vibechad#1234","gvcmaxi#5678","holder.eth#9012","cryptovibe#3456",
-  "wagmi_vibes#7890","degen_life#2345","ethereal#6789","vibetown#0123",
-  "nft_whale#4567","vibecheck#8901","blockbro#2346","web3wiz#6780",
-  "collector#0124","vibemaxi#4568","gvcfam#8902","alpha#2347",
-  "nftguru#6781","cryptomax#0125","vibeholder#4569","legend#8903",
-  "defivibe#2348","flipmaster#6782","vibecomm#0126","diamond#4570",
-  "cryptovibez#8904","og_holder#2349","gvcking#6783","vibequeen#0127",
-  "nftdegen#4571","whalewatch#8905",
-];
-
-function hashCode(str: string): number {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    const c = str.charCodeAt(i);
-    h = (h << 5) - h + c;
-    h = h & h;
-  }
-  return Math.abs(h);
+interface Holder extends RawHolder {
+  manualTwitter: string; // user-entered, overrides twitter
 }
 
-function buildHolder(wallet: string, buys: number, sells: number, volume: number, gvcCount: number): Holder {
-  const h = hashCode(wallet);
-  const social = {
-    twitter: TWITTER_HANDLES[h % TWITTER_HANDLES.length],
-    discord: DISCORD_HANDLES[h % DISCORD_HANDLES.length],
-    joined: new Date(Date.now() - (h % 700) * 86400000).toLocaleDateString("en-US", { month: "short", year: "numeric" }),
-    isNew: h % 10 === 0,
-    totalVolume: volume || parseFloat(((h % 500) / 10).toFixed(2)),
-  };
-  const tags: string[] = [];
-  if (h % 5 === 0) tags.push("OG Holder");
-  if (h % 7 === 0) tags.push("Diamond Hands");
-  if (h % 3 === 0) tags.push("Active Trader");
-  if (h % 11 === 0) tags.push("Community Voice");
-
-  const holdScore = Math.min(40, gvcCount >= 100 ? 40 : gvcCount >= 30 ? 30 : gvcCount >= 10 ? 20 : 10);
-  const actScore = Math.min(35, buys * 8 + Math.max(0, 15 - sells * 3));
-  const vibeScore = Math.min(100, Math.max(10, holdScore + actScore + (h % 25) + 5));
-  const isWhale = gvcCount >= 20;
-  const isActive = buys > 0;
-  const tier: HolderTier = isWhale && isActive ? "whale-active" : isWhale ? "whale-passive" : isActive ? "community-active" : "community-passive";
-  const lastActivity = (buys > 0 || sells > 0) ? `${(h % 28) + 1}d ago` : `${(h % 60) + 30}d ago`;
-
-  return {
-    wallet, gvcCount, twitter: social.twitter, discord: social.discord,
-    vibeScore, tier, lastActivity, joined: social.joined,
-    totalVolume: social.totalVolume, recentBuys: buys, recentSells: sells,
-    isNew: social.isNew, tags: tags.slice(0, 3),
-  };
-}
-
-function fillTemplate(body: string, holder: Holder): string {
-  return body
-    .replace(/{twitter}/g, holder.twitter)
-    .replace(/{gvcCount}/g, String(holder.gvcCount))
-    .replace(/{vibeScore}/g, String(holder.vibeScore))
-    .replace(/{discord}/g, holder.discord);
-}
-
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 function truncate(addr: string) { return addr.slice(0, 6) + "..." + addr.slice(-4); }
 
-// ─── Shared Components ────────────────────────────────────────────────────────
-
-function VibeBar({ score }: { score: number }) {
-  const color = score >= 75 ? "#2EFF2E" : score >= 50 ? "#FFE048" : score >= 30 ? "#FF5F1F" : "#FF6B9D";
-  return (
-    <div className="flex items-center gap-2">
-      <div className="flex-1 h-1.5 rounded-full bg-[#1F1F1F] overflow-hidden">
-        <motion.div className="h-full rounded-full" style={{ background: color }}
-          initial={{ width: 0 }} animate={{ width: `${score}%` }} transition={{ duration: 0.8, ease: "easeOut" }} />
-      </div>
-      <span className="text-xs font-bold" style={{ color }}>{score}</span>
-    </div>
-  );
+function fillTemplate(body: string, h: Holder): string {
+  const handle = h.manualTwitter || h.twitter || h.ens || truncate(h.address);
+  return body
+    .replace(/{twitter}/g, handle)
+    .replace(/{nfts}/g, String(h.nfts));
 }
+
+function displayName(h: Holder): string {
+  if (h.manualTwitter) return `@${h.manualTwitter}`;
+  if (h.twitter) return `@${h.twitter}`;
+  if (h.ens) return h.ens;
+  return truncate(h.address);
+}
+
+function isIdentified(h: Holder): boolean {
+  return !!(h.manualTwitter || h.twitter);
+}
+
+const LS_KEY = "gvc:crm:twitter-map";
+
+function loadManualMap(): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || "{}"); } catch { return {}; }
+}
+
+function saveManualMap(map: Record<string, string>) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(LS_KEY, JSON.stringify(map));
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function TierBadge({ tier }: { tier: HolderTier }) {
   const cfg = TIER_CONFIG[tier];
@@ -252,8 +186,6 @@ function TierBadge({ tier }: { tier: HolderTier }) {
     </span>
   );
 }
-
-// ─── Team Dropdown ────────────────────────────────────────────────────────────
 
 function TeamDropdown({ active, onChange }: { active: TeamMember; onChange: (m: TeamMember) => void }) {
   const [open, setOpen] = useState(false);
@@ -270,15 +202,15 @@ function TeamDropdown({ active, onChange }: { active: TeamMember; onChange: (m: 
     <div ref={ref} className="relative">
       <button onClick={() => setOpen(o => !o)}
         className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#121212] border border-[#1F1F1F] hover:border-[#333] transition-all">
-        <span className="text-base leading-none">{member.avatar}</span>
+        <span>{member.avatar}</span>
         <span className="text-sm font-bold text-white font-body">{member.name}</span>
         <ChevronDown size={12} className={`text-gray-500 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       <AnimatePresence>
         {open && (
           <motion.div className="absolute right-0 top-full mt-1.5 w-40 rounded-xl bg-[#0D0D0D] border border-[#1F1F1F] overflow-hidden z-50 shadow-2xl"
-            initial={{ opacity: 0, y: -6, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.97 }} transition={{ duration: 0.12 }}>
+            initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.12 }}>
             {TEAM.map(m => (
               <button key={m.id} onClick={() => { onChange(m.id); setOpen(false); }}
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-sm font-body transition-colors ${
@@ -296,12 +228,53 @@ function TeamDropdown({ active, onChange }: { active: TeamMember; onChange: (m: 
   );
 }
 
-// ─── GIF Picker Component ─────────────────────────────────────────────────────
+// ─── Twitter Edit Inline ──────────────────────────────────────────────────────
+function TwitterEdit({ holder, onSave }: { holder: Holder; onSave: (addr: string, handle: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [val, setVal] = useState(holder.manualTwitter || holder.twitter || "");
+  const inputRef = useRef<HTMLInputElement>(null);
 
-function GifPicker({ selected, onSelect }: {
-  selected: string | null;
-  onSelect: (url: string | null) => void;
-}) {
+  function save() {
+    const clean = val.trim().replace(/^@/, "");
+    onSave(holder.address, clean);
+    setEditing(false);
+  }
+
+  useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
+
+  if (editing) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <span className="text-gray-500 text-sm">@</span>
+        <input ref={inputRef} value={val} onChange={e => setVal(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}
+          placeholder="twitterhandle"
+          className="bg-[#1F1F1F] border border-[#FFE048]/40 rounded-lg px-2 py-1 text-sm text-white font-body focus:outline-none w-36" />
+        <button onClick={save} className="p-1 rounded-lg bg-[#FFE048] text-black hover:bg-[#FFD000] transition-all">
+          <Check size={11} />
+        </button>
+        <button onClick={() => setEditing(false)} className="p-1 rounded-lg bg-[#1F1F1F] text-gray-400 hover:text-white transition-all">
+          <X size={11} />
+        </button>
+      </div>
+    );
+  }
+
+  const name = displayName(holder);
+  const identified = isIdentified(holder);
+
+  return (
+    <button onClick={() => setEditing(true)}
+      className={`flex items-center gap-1.5 group/edit transition-colors ${identified ? "text-white" : "text-gray-500"}`}>
+      <Twitter size={12} className={identified ? "text-[#1DA1F2]" : "text-gray-600"} />
+      <span className="text-sm font-body">{name}</span>
+      <Pencil size={10} className="opacity-0 group-hover/edit:opacity-100 transition-opacity text-gray-500" />
+    </button>
+  );
+}
+
+// ─── GIF Picker ───────────────────────────────────────────────────────────────
+function GifPicker({ selected, onSelect }: { selected: string | null; onSelect: (url: string | null) => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -317,37 +290,24 @@ function GifPicker({ selected, onSelect }: {
     <div ref={ref} className="relative">
       <button onClick={() => setOpen(o => !o)}
         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold font-body border transition-all ${
-          selected
-            ? "border-[#FFE048]/40 text-[#FFE048] bg-[rgba(255,224,72,0.06)]"
-            : "border-[#1F1F1F] text-gray-400 bg-[#121212] hover:border-[#333] hover:text-white"
+          selected ? "border-[#FFE048]/40 text-[#FFE048] bg-[rgba(255,224,72,0.06)]"
+                   : "border-[#1F1F1F] text-gray-400 bg-[#121212] hover:border-[#333] hover:text-white"
         }`}>
-        <Smile size={12} />
-        {selected ? `GIF: ${selectedGif?.label}` : "Pick a GIF"}
+        🎞️ {selected ? `GIF: ${selectedGif?.label}` : "Pick GIF"}
       </button>
-
       <AnimatePresence>
         {open && (
-          <motion.div
-            className="absolute bottom-full mb-2 left-0 w-72 rounded-2xl bg-[#0D0D0D] border border-[#1F1F1F] p-3 z-50 shadow-2xl"
-            initial={{ opacity: 0, y: 8, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.97 }}
-            transition={{ duration: 0.15 }}>
+          <motion.div className="absolute bottom-full mb-2 left-0 w-72 rounded-2xl bg-[#0D0D0D] border border-[#1F1F1F] p-3 z-50 shadow-2xl"
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }} transition={{ duration: 0.15 }}>
             <div className="flex items-center justify-between mb-2.5">
               <span className="text-xs font-bold text-gray-400 font-body uppercase tracking-wider">GVC GIF Library</span>
-              {selected && (
-                <button onClick={() => { onSelect(null); setOpen(false); }}
-                  className="text-[10px] text-gray-500 hover:text-white font-body transition-colors">
-                  Clear
-                </button>
-              )}
+              {selected && <button onClick={() => { onSelect(null); setOpen(false); }} className="text-[10px] text-gray-500 hover:text-white font-body">Clear</button>}
             </div>
             <div className="grid grid-cols-5 gap-1.5">
               {GIF_LIBRARY.map(gif => (
                 <button key={gif.id} onClick={() => { onSelect(gif.url); setOpen(false); }}
-                  className={`relative rounded-lg overflow-hidden aspect-square border-2 transition-all ${
-                    selected === gif.url ? "border-[#FFE048]" : "border-transparent hover:border-[#333]"
-                  }`}
+                  className={`relative rounded-lg overflow-hidden aspect-square border-2 transition-all ${selected === gif.url ? "border-[#FFE048]" : "border-transparent hover:border-[#333]"}`}
                   title={gif.label}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={gif.url} alt={gif.label} className="w-full h-full object-cover" />
@@ -359,9 +319,6 @@ function GifPicker({ selected, onSelect }: {
                 </button>
               ))}
             </div>
-            <p className="text-[10px] text-gray-600 font-body mt-2 text-center">
-              GIF URL auto-copies with your message
-            </p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -370,17 +327,16 @@ function GifPicker({ selected, onSelect }: {
 }
 
 // ─── Holder Modal ─────────────────────────────────────────────────────────────
-
-function HolderModal({ holder, activeMember, onClose }: {
+function HolderModal({ holder, activeMember, onClose, onSaveTwitter }: {
   holder: Holder;
   activeMember: TeamMember;
   onClose: () => void;
+  onSaveTwitter: (addr: string, handle: string) => void;
 }) {
   const [selectedTemplate, setSelectedTemplate] = useState<TeamTemplate | null>(null);
   const [selectedGif, setSelectedGif] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const cfg = TIER_CONFIG[holder.tier];
-  const memberInfo = TEAM.find(m => m.id === activeMember)!;
 
   function copy() {
     if (!selectedTemplate) return;
@@ -391,11 +347,7 @@ function HolderModal({ holder, activeMember, onClose }: {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  // Reset gif when template changes
-  function pickTemplate(t: TeamTemplate) {
-    setSelectedTemplate(selectedTemplate?.id === t.id ? null : t);
-    setSelectedGif(null);
-  }
+  const twitterHandle = holder.manualTwitter || holder.twitter;
 
   return (
     <motion.div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
@@ -403,12 +355,9 @@ function HolderModal({ holder, activeMember, onClose }: {
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
       <motion.div
         className="relative w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-2xl border-t sm:border border-[#1F1F1F] bg-[#0D0D0D]"
-        initial={{ y: "100%", opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: "100%", opacity: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 35 }}>
+        initial={{ y: "100%", opacity: 0 }} animate={{ y: 0, opacity: 1 }}
+        exit={{ y: "100%", opacity: 0 }} transition={{ type: "spring", stiffness: 300, damping: 35 }}>
 
-        {/* Drag handle (mobile) */}
         <div className="sm:hidden w-10 h-1 rounded-full bg-[#333] mx-auto mt-3 mb-1" />
 
         {/* Header */}
@@ -416,12 +365,27 @@ function HolderModal({ holder, activeMember, onClose }: {
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg shrink-0"
               style={{ background: cfg.bg }}>
-              {holder.gvcCount >= 20 ? "🐋" : "✨"}
+              {cfg.icon}
             </div>
             <div>
-              <h2 className="font-display text-lg text-white leading-tight">@{holder.twitter}</h2>
-              <p className="text-xs text-gray-500 font-body font-mono">{truncate(holder.wallet)}</p>
-              <div className="mt-1.5"><TierBadge tier={holder.tier} /></div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <TwitterEdit holder={holder} onSave={onSaveTwitter} />
+                {twitterHandle && (
+                  <a href={`https://x.com/${twitterHandle}`} target="_blank" rel="noopener noreferrer"
+                    className="text-gray-600 hover:text-gray-400 transition-colors">
+                    <ExternalLink size={11} />
+                  </a>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 font-body font-mono">{truncate(holder.address)}</p>
+              <div className="mt-1.5 flex items-center gap-2">
+                <TierBadge tier={holder.tier} />
+                {holder.isAccumulating && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[rgba(46,255,46,0.12)] text-[#2EFF2E]">
+                    📈 +{holder.buysThisMonth} this month
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-[#1F1F1F] text-gray-400 transition-colors shrink-0">
@@ -432,9 +396,9 @@ function HolderModal({ holder, activeMember, onClose }: {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-px bg-[#1F1F1F] border-b border-[#1F1F1F]">
           {[
-            { label: "GVCs",       value: holder.gvcCount,           icon: "🖼️" },
-            { label: "Vibe Score", value: `${holder.vibeScore}/100`, icon: "⚡" },
-            { label: "Active",     value: holder.lastActivity,       icon: "⏱" },
+            { label: "GVCs Held",  value: holder.nfts,                   icon: "🖼️" },
+            { label: "Rank",       value: `#${holder.rank}`,              icon: "👑" },
+            { label: "Buys (30d)", value: holder.buysThisMonth || "—",    icon: "📈" },
           ].map(s => (
             <div key={s.label} className="bg-[#0D0D0D] p-3 text-center">
               <div className="text-base mb-0.5">{s.icon}</div>
@@ -444,29 +408,35 @@ function HolderModal({ holder, activeMember, onClose }: {
           ))}
         </div>
 
-        {/* Contact */}
-        <div className="p-4 border-b border-[#1F1F1F] grid grid-cols-2 gap-2">
+        {/* Wallet */}
+        <div className="p-4 border-b border-[#1F1F1F]">
           <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#121212] border border-[#1F1F1F]">
-            <Twitter size={12} className="text-[#1DA1F2] shrink-0" />
-            <span className="text-xs text-white font-body truncate">@{holder.twitter}</span>
-          </div>
-          <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[#121212] border border-[#1F1F1F]">
-            <Hash size={12} className="text-[#5865F2] shrink-0" />
-            <span className="text-xs text-white font-body truncate">{holder.discord}</span>
+            <span className="text-xs text-gray-500 font-body font-mono flex-1">{holder.address}</span>
+            <button onClick={() => navigator.clipboard.writeText(holder.address)}
+              className="text-gray-500 hover:text-white transition-colors shrink-0">
+              <Copy size={12} />
+            </button>
+            <a href={`https://etherscan.io/address/${holder.address}`} target="_blank" rel="noopener noreferrer"
+              className="text-gray-500 hover:text-white transition-colors shrink-0">
+              <ExternalLink size={12} />
+            </a>
           </div>
         </div>
 
         {/* Sending as */}
-        <div className="px-4 pt-3 pb-2 flex items-center gap-2">
+        <div className="px-4 pt-3 pb-1 flex items-center gap-2">
           <span className="text-xs text-gray-500 font-body">Sending as</span>
-          <span className="text-xs font-bold text-white font-body">{memberInfo.avatar} {memberInfo.name}</span>
+          <span className="text-xs font-bold text-white font-body">
+            {TEAM.find(m => m.id === activeMember)?.avatar}{" "}
+            {TEAM.find(m => m.id === activeMember)?.name}
+          </span>
         </div>
 
         {/* Template picker */}
-        <div className="px-4 pb-3">
+        <div className="px-4 pb-3 pt-2">
           <div className="grid grid-cols-3 gap-2">
             {TEMPLATES.map(t => (
-              <button key={t.id} onClick={() => pickTemplate(t)}
+              <button key={t.id} onClick={() => { setSelectedTemplate(selectedTemplate?.id === t.id ? null : t); setSelectedGif(null); }}
                 className={`p-2.5 rounded-xl border text-left transition-all ${
                   selectedTemplate?.id === t.id
                     ? "border-[#FFE048] bg-[rgba(255,224,72,0.08)]"
@@ -479,34 +449,29 @@ function HolderModal({ holder, activeMember, onClose }: {
           </div>
         </div>
 
-        {/* Message preview + GIF + send */}
+        {/* Message preview */}
         <AnimatePresence>
           {selectedTemplate && (
             <motion.div className="mx-4 mb-4 rounded-2xl border border-[#1F1F1F] overflow-hidden"
               initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-
-              {/* Message body */}
               <div className="p-4 bg-[#121212]">
                 <p className="text-sm text-white font-body leading-relaxed">
                   {fillTemplate(selectedTemplate.bodies[activeMember], holder)}
                 </p>
-                {/* GIF preview */}
                 <AnimatePresence>
                   {selectedGif && (
                     <motion.div className="mt-3 relative inline-block"
                       initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={selectedGif} alt="selected gif" className="max-h-36 rounded-xl" />
+                      <img src={selectedGif} alt="gif" className="max-h-36 rounded-xl" />
                       <button onClick={() => setSelectedGif(null)}
-                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#0D0D0D] border border-[#1F1F1F] flex items-center justify-center text-gray-400 hover:text-white transition-colors">
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#0D0D0D] border border-[#1F1F1F] flex items-center justify-center text-gray-400 hover:text-white">
                         <X size={10} />
                       </button>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
-
-              {/* Actions bar */}
               <div className="flex items-center gap-2 p-3 border-t border-[#1F1F1F] bg-[#0D0D0D]">
                 <GifPicker selected={selectedGif} onSelect={setSelectedGif} />
                 <button onClick={copy}
@@ -524,111 +489,87 @@ function HolderModal({ holder, activeMember, onClose }: {
 }
 
 // ─── Main CRM Page ────────────────────────────────────────────────────────────
-
-type Tab = "dashboard" | "holders" | "templates";
-type TierFilter = "all" | HolderTier | "new";
+type Tab = "holders" | "templates";
+type TierFilter = "all" | HolderTier | "accumulating" | "unknown";
 
 export default function CRMPage() {
-  const [tab, setTab] = useState<Tab>("dashboard");
+  const [tab, setTab] = useState<Tab>("holders");
   const [activeMember, setActiveMember] = useState<TeamMember>("chris");
   const [holders, setHolders] = useState<Holder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [fetchedAt, setFetchedAt] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [tierFilter, setTierFilter] = useState<TierFilter>("all");
-  const [sortBy, setSortBy] = useState<"vibeScore" | "gvcCount">("vibeScore");
   const [selectedHolder, setSelectedHolder] = useState<Holder | null>(null);
-  const [expandedTemplate, setExpandedTemplate] = useState<string | null>(null);
+  const [manualMap, setManualMap] = useState<Record<string, string>>({});
   const [templateGifs, setTemplateGifs] = useState<Record<string, string | null>>({});
   const [copiedTemplate, setCopiedTemplate] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const [tradersRes, activityRes] = await Promise.all([
-          fetch("https://api-hazel-pi-72.vercel.app/api/traders"),
-          fetch("https://api-hazel-pi-72.vercel.app/api/activity"),
-        ]);
-        const tradersData = await tradersRes.json();
-        const activityData = await activityRes.json();
+  // Load manual Twitter map from localStorage
+  useEffect(() => { setManualMap(loadManualMap()); }, []);
 
-        const traderMap = new Map<string, { buys: number; sells: number; volume: number; gvcCount: number }>();
-        const traders = tradersData?.traders || tradersData?.data || tradersData || [];
-        for (const t of (Array.isArray(traders) ? traders : [])) {
-          const wallet = (t.wallet || t.address || "").toLowerCase();
-          if (!wallet) continue;
-          traderMap.set(wallet, {
-            buys: t.buys || t.buy_count || 0, sells: t.sells || t.sell_count || 0,
-            volume: parseFloat(t.volume || t.total_volume || 0),
-            gvcCount: t.current_count || t.holdings || t.balance || Math.max(1, (t.buys || 0) - (t.sells || 0)),
-          });
-        }
-        const accumulators = activityData?.accumulators || activityData?.leaderboard || [];
-        for (const a of (Array.isArray(accumulators) ? accumulators : [])) {
-          const wallet = (a.wallet || a.address || "").toLowerCase();
-          if (!wallet || traderMap.has(wallet)) continue;
-          traderMap.set(wallet, { buys: a.buys || 0, sells: 0, volume: 0, gvcCount: a.net || a.buys || 1 });
-        }
-
-        const built: Holder[] = [];
-        for (const [wallet, t] of traderMap)
-          built.push(buildHolder(wallet, t.buys, t.sells, t.volume, Math.max(1, t.gvcCount || (hashCode(wallet) % 50) + 1)));
-
-        for (let i = 0; built.length < 60; i++) {
-          const wallet = `0x${hashCode(`pad_${i}`).toString(16).padStart(40, "0")}`;
-          if (built.find(b => b.wallet === wallet)) continue;
-          const h = hashCode(wallet);
-          built.push(buildHolder(wallet, h % 4, h % 3, 0, (h % 80) + 1));
-        }
-
-        built.sort((a, b) => b.vibeScore - a.vibeScore);
-        setHolders(built);
-      } catch {
-        const mock: Holder[] = [];
-        for (let i = 0; i < 80; i++) {
-          const wallet = `0x${hashCode(`fb_${i}`).toString(16).padStart(40, "0")}`;
-          const h = hashCode(wallet);
-          mock.push(buildHolder(wallet, h % 5, h % 3, 0, (h % 100) + 1));
-        }
-        mock.sort((a, b) => b.vibeScore - a.vibeScore);
-        setHolders(mock);
-      } finally {
-        setLoading(false);
-      }
+  async function loadHolders() {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/holders");
+      if (!res.ok) throw new Error(`API error ${res.status}`);
+      const data = await res.json();
+      const map = loadManualMap();
+      const withManual: Holder[] = data.holders.map((h: RawHolder) => ({
+        ...h,
+        manualTwitter: map[h.address.toLowerCase()] || "",
+      }));
+      setHolders(withManual);
+      setFetchedAt(data.fetchedAt);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to load holder data");
+    } finally {
+      setLoading(false);
     }
-    load();
-  }, []);
+  }
+
+  useEffect(() => { loadHolders(); }, []);
+
+  function saveTwitter(address: string, handle: string) {
+    const addr = address.toLowerCase();
+    const newMap = { ...manualMap, [addr]: handle };
+    setManualMap(newMap);
+    saveManualMap(newMap);
+    setHolders(prev => prev.map(h =>
+      h.address.toLowerCase() === addr ? { ...h, manualTwitter: handle } : h
+    ));
+    setSelectedHolder(prev => prev && prev.address.toLowerCase() === addr ? { ...prev, manualTwitter: handle } : prev);
+  }
+
+  const counts = useMemo(() => ({
+    whale:       holders.filter(h => h.tier === "whale").length,
+    core:        holders.filter(h => h.tier === "core").length,
+    solid:       holders.filter(h => h.tier === "solid").length,
+    collector:   holders.filter(h => h.tier === "collector").length,
+    accumulating: holders.filter(h => h.isAccumulating).length,
+    unknown:     holders.filter(h => !isIdentified(h)).length,
+  }), [holders]);
 
   const filtered = useMemo(() => {
     let list = holders;
-    if (tierFilter === "new") list = list.filter(h => h.isNew);
+    if (tierFilter === "accumulating") list = list.filter(h => h.isAccumulating);
+    else if (tierFilter === "unknown") list = list.filter(h => !isIdentified(h));
     else if (tierFilter !== "all") list = list.filter(h => h.tier === tierFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
-      list = list.filter(h => h.twitter.includes(q) || h.discord.toLowerCase().includes(q) || h.wallet.toLowerCase().includes(q));
+      list = list.filter(h =>
+        h.manualTwitter.toLowerCase().includes(q) ||
+        h.twitter.toLowerCase().includes(q) ||
+        h.ens.toLowerCase().includes(q) ||
+        h.address.toLowerCase().includes(q)
+      );
     }
-    return [...list].sort((a, b) => sortBy === "gvcCount" ? b.gvcCount - a.gvcCount : b.vibeScore - a.vibeScore);
-  }, [holders, tierFilter, search, sortBy]);
+    return list;
+  }, [holders, tierFilter, search]);
 
-  const counts = useMemo(() => ({
-    "whale-active":      holders.filter(h => h.tier === "whale-active").length,
-    "whale-passive":     holders.filter(h => h.tier === "whale-passive").length,
-    "community-active":  holders.filter(h => h.tier === "community-active").length,
-    "community-passive": holders.filter(h => h.tier === "community-passive").length,
-    new: holders.filter(h => h.isNew).length,
-  }), [holders]);
-
-  const avgVibe = useMemo(() =>
-    holders.length ? Math.round(holders.reduce((s, h) => s + h.vibeScore, 0) / holders.length) : 0,
-    [holders]
-  );
-
-  function copyTemplateMessage(t: TeamTemplate, gifUrl: string | null | undefined) {
-    const msg = t.bodies[activeMember];
-    const full = gifUrl ? `${msg}\n${gifUrl}` : msg;
-    navigator.clipboard.writeText(full);
-    setCopiedTemplate(t.id);
-    setTimeout(() => setCopiedTemplate(null), 2000);
-  }
+  const identified = holders.filter(isIdentified).length;
 
   return (
     <div className="min-h-screen bg-[#050505] text-white">
@@ -637,22 +578,22 @@ export default function CRMPage() {
 
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-[#1F1F1F] bg-[#050505]/95 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Image src="/gvc-logotype.svg" alt="GVC" width={80} height={28} className="brightness-110" />
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#1F1F1F] border border-[#2a2a2a]">
               <div className="w-1.5 h-1.5 rounded-full bg-[#2EFF2E] animate-pulse" />
-              <span className="text-[10px] font-bold text-[#2EFF2E] font-body tracking-wider">CRM</span>
+              <span className="text-[10px] font-bold text-[#2EFF2E] font-body tracking-wider">HOLDER CRM</span>
             </div>
           </div>
           <nav className="flex items-center gap-1 bg-[#121212] rounded-xl p-1 border border-[#1F1F1F]">
-            {(["dashboard", "holders", "templates"] as Tab[]).map(t => (
+            {(["holders", "templates"] as Tab[]).map(t => (
               <button key={t} onClick={() => setTab(t)}
-                className={`px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold font-body capitalize transition-all ${
+                className={`px-3 sm:px-5 py-1.5 rounded-lg text-xs font-bold font-body capitalize transition-all ${
                   tab === t ? "bg-[#FFE048] text-black" : "text-gray-400 hover:text-white"
                 }`}>
-                {t === "dashboard" ? "📊" : t === "holders" ? "👥" : "✉️"}
-                <span className="hidden sm:inline ml-1.5">{t}</span>
+                {t === "holders" ? "👥" : "✉️"}
+                <span className="hidden sm:inline ml-1.5">{t.charAt(0).toUpperCase() + t.slice(1)}</span>
               </button>
             ))}
           </nav>
@@ -660,123 +601,66 @@ export default function CRMPage() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         <AnimatePresence mode="wait">
 
-          {/* ── Dashboard ──────────────────────────────────────────────── */}
-          {tab === "dashboard" && (
-            <motion.div key="dash" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              <div className="mb-8">
-                <h1 className="font-display text-3xl sm:text-4xl text-shimmer mb-2">Community Pulse</h1>
-                <p className="text-gray-400 font-body text-sm">Know your holders. Act on vibes.</p>
-              </div>
-
-              {/* Stat cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                {[
-                  { label: "Total Holders",  value: loading ? "—" : holders.length,                                        icon: <Users size={18} />,  color: "#FFE048" },
-                  { label: "Avg Vibe Score", value: loading ? "—" : `${avgVibe}/100`,                                      icon: <Zap size={18} />,    color: "#2EFF2E" },
-                  { label: "Whale Active",   value: loading ? "—" : counts["whale-active"],                                icon: <Crown size={18} />,  color: "#FF5F1F" },
-                  { label: "Need Re-engage", value: loading ? "—" : counts["whale-passive"] + counts["community-passive"], icon: <Bell size={18} />,   color: "#FF6B9D" },
-                ].map((s, i) => (
-                  <motion.div key={s.label} className="card-glow rounded-2xl bg-[#121212] border border-[#1F1F1F] p-5"
-                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-gray-500 font-body text-xs uppercase tracking-wider">{s.label}</span>
-                      <span style={{ color: s.color }}>{s.icon}</span>
-                    </div>
-                    <div className="font-display text-2xl sm:text-3xl" style={{ color: s.color }}>{s.value}</div>
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Tier breakdown */}
-              <div className="grid sm:grid-cols-2 gap-4 mb-8">
-                {(Object.entries(TIER_CONFIG) as [HolderTier, typeof TIER_CONFIG[HolderTier]][]).map(([key, cfg]) => (
-                  <motion.div key={key}
-                    className="rounded-2xl border border-[#1F1F1F] bg-[#121212] p-5 cursor-pointer hover:border-[#333] transition-all"
-                    onClick={() => { setTierFilter(key); setTab("holders"); }}
-                    whileHover={{ scale: 1.01 }}>
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <div className="font-display text-base text-white mb-1">{cfg.icon} {cfg.label}</div>
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                          style={{ color: cfg.color, background: cfg.bg }}>{cfg.priority}</span>
-                      </div>
-                      <div className="text-3xl font-display" style={{ color: cfg.color }}>{counts[key]}</div>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-[#1F1F1F] overflow-hidden">
-                      <motion.div className="h-full rounded-full" style={{ background: cfg.color }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${holders.length ? (counts[key] / holders.length) * 100 : 0}%` }}
-                        transition={{ duration: 1, delay: 0.3 }} />
-                    </div>
-                    <div className="text-right text-xs text-gray-500 mt-1 font-body">
-                      {holders.length ? Math.round((counts[key] / holders.length) * 100) : 0}% of community
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-
-              {/* Top holders */}
-              <div className="rounded-2xl border border-[#1F1F1F] bg-[#121212] p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-display text-base text-white">🏆 Top Vibe Holders</h2>
-                  <button onClick={() => setTab("holders")} className="text-xs text-[#FFE048] font-body hover:underline">View all →</button>
-                </div>
-                <div className="space-y-2">
-                  {holders.slice(0, 6).map((h, i) => (
-                    <div key={h.wallet} onClick={() => setSelectedHolder(h)}
-                      className="flex items-center gap-3 cursor-pointer hover:bg-[#1A1A1A] rounded-xl p-2 transition-colors">
-                      <div className="w-5 text-center text-xs font-bold font-body shrink-0"
-                        style={{ color: i < 3 ? "#FFE048" : "#555" }}>#{i + 1}</div>
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0"
-                        style={{ background: TIER_CONFIG[h.tier].bg }}>
-                        {h.gvcCount >= 20 ? "🐋" : "✨"}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-bold text-white font-body truncate">@{h.twitter}</div>
-                        <div className="text-xs text-gray-500 font-body">{h.gvcCount} GVCs · {h.lastActivity}</div>
-                      </div>
-                      <div className="w-24 hidden sm:block"><VibeBar score={h.vibeScore} /></div>
-                      <TierBadge tier={h.tier} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ── Holders ────────────────────────────────────────────────── */}
+          {/* ── Holders Tab ─────────────────────────────────────────────── */}
           {tab === "holders" && (
             <motion.div key="holders" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-              <div className="mb-6">
-                <h1 className="font-display text-3xl text-shimmer mb-1">All Holders</h1>
-                <p className="text-gray-400 font-body text-sm">{filtered.length} of {holders.length} showing</p>
+
+              {/* Page header */}
+              <div className="flex items-end justify-between mb-6">
+                <div>
+                  <h1 className="font-display text-3xl sm:text-4xl text-shimmer mb-1">Top 100 Holders</h1>
+                  <p className="text-gray-400 font-body text-sm">
+                    Real on-chain data · {identified}/{holders.length} identified
+                    {fetchedAt && <span className="ml-2 text-gray-600">· refreshed {new Date(fetchedAt).toLocaleTimeString()}</span>}
+                  </p>
+                </div>
+                <button onClick={loadHolders} disabled={loading}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#121212] border border-[#1F1F1F] text-gray-400 hover:text-white text-xs font-body transition-all disabled:opacity-40">
+                  <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+                  Refresh
+                </button>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 mb-5">
+              {/* Stat pills */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                {(Object.entries(TIER_CONFIG) as [HolderTier, typeof TIER_CONFIG[HolderTier]][]).map(([key, cfg]) => (
+                  <button key={key} onClick={() => setTierFilter(tierFilter === key ? "all" : key)}
+                    className={`rounded-2xl border p-4 text-left transition-all ${
+                      tierFilter === key ? "border-[#FFE048]/40 bg-[rgba(255,224,72,0.05)]" : "border-[#1F1F1F] bg-[#121212] hover:border-[#333]"
+                    }`}>
+                    <div className="text-xl mb-1">{cfg.icon}</div>
+                    <div className="font-display text-2xl" style={{ color: cfg.color }}>{counts[key]}</div>
+                    <div className="text-xs text-gray-500 font-body">{cfg.label} <span className="text-gray-600">({cfg.desc})</span></div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Error */}
+              {error && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-body mb-4">
+                  <AlertCircle size={14} />
+                  {error}
+                </div>
+              )}
+
+              {/* Filters + search */}
+              <div className="flex flex-col sm:flex-row gap-3 mb-4">
                 <div className="relative flex-1">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                  <input type="text" placeholder="Search by Twitter, Discord, or wallet..."
+                  <input type="text" placeholder="Search by Twitter, ENS, or wallet address..."
                     value={search} onChange={e => setSearch(e.target.value)}
                     className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[#121212] border border-[#1F1F1F] text-sm text-white placeholder-gray-600 font-body focus:outline-none focus:border-[#FFE048]/40 transition-colors" />
                 </div>
-                <select value={sortBy} onChange={e => setSortBy(e.target.value as typeof sortBy)}
-                  className="px-3 py-2.5 rounded-xl bg-[#121212] border border-[#1F1F1F] text-sm text-gray-300 font-body focus:outline-none">
-                  <option value="vibeScore">Sort: Vibe Score</option>
-                  <option value="gvcCount">Sort: GVC Count</option>
-                </select>
               </div>
 
-              <div className="flex flex-wrap gap-2 mb-6">
+              <div className="flex flex-wrap gap-2 mb-5">
                 {([
-                  { key: "all",              label: "All",                  count: holders.length },
-                  { key: "whale-active",     label: "🐋🔥 Whale Active",    count: counts["whale-active"] },
-                  { key: "whale-passive",    label: "🐋💤 Whale Passive",   count: counts["whale-passive"] },
-                  { key: "community-active", label: "⚡ Community Active",  count: counts["community-active"] },
-                  { key: "community-passive",label: "😴 Community Passive", count: counts["community-passive"] },
-                  { key: "new",              label: "✨ New",               count: counts.new },
+                  { key: "all",          label: "All",             count: holders.length },
+                  { key: "accumulating", label: "📈 Accumulating", count: counts.accumulating },
+                  { key: "unknown",      label: "❓ Not Identified", count: counts.unknown },
                 ] as { key: TierFilter; label: string; count: number }[]).map(f => (
                   <button key={f.key} onClick={() => setTierFilter(f.key)}
                     className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold font-body transition-all ${
@@ -790,138 +674,194 @@ export default function CRMPage() {
                 ))}
               </div>
 
+              {/* Holder list */}
               {loading ? (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[...Array(6)].map((_, i) => <div key={i} className="rounded-2xl bg-[#121212] border border-[#1F1F1F] p-5 animate-pulse h-36" />)}
+                <div className="space-y-2">
+                  {[...Array(10)].map((_, i) => (
+                    <div key={i} className="h-16 rounded-2xl bg-[#121212] border border-[#1F1F1F] animate-pulse" />
+                  ))}
                 </div>
               ) : (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filtered.map(h => (
-                    <motion.div key={h.wallet}
-                      className="rounded-2xl bg-[#121212] border border-[#1F1F1F] p-5 cursor-pointer hover:border-[#333] card-glow transition-all"
-                      onClick={() => setSelectedHolder(h)}
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} whileHover={{ y: -2 }}>
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-base shrink-0"
-                            style={{ background: TIER_CONFIG[h.tier].bg }}>
-                            {h.gvcCount >= 20 ? "🐋" : "✨"}
-                          </div>
-                          <div>
-                            <div className="text-sm font-bold text-white font-body">@{h.twitter}</div>
-                            <div className="text-[10px] text-gray-500 font-body font-mono">{truncate(h.wallet)}</div>
-                          </div>
+                <div className="rounded-2xl border border-[#1F1F1F] bg-[#121212] overflow-hidden">
+                  {filtered.map((h, i) => {
+                    const cfg = TIER_CONFIG[h.tier];
+                    return (
+                      <motion.div key={h.address}
+                        className={`flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-[#1a1a1a] transition-colors ${
+                          i < filtered.length - 1 ? "border-b border-[#1A1A1A]" : ""
+                        }`}
+                        onClick={() => setSelectedHolder(h)}
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}>
+
+                        {/* Rank */}
+                        <div className="w-8 text-center text-xs font-bold font-body shrink-0"
+                          style={{ color: h.rank <= 3 ? "#FFE048" : h.rank <= 10 ? "#FF5F1F" : "#555" }}>
+                          #{h.rank}
                         </div>
-                        {h.isNew && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 bg-[rgba(46,255,46,0.12)] text-[#2EFF2E]">NEW</span>}
-                      </div>
-                      <div className="flex items-center justify-between mb-3 text-xs font-body text-gray-400">
-                        <span>🖼️ {h.gvcCount} GVCs</span>
-                        <span>⏱ {h.lastActivity}</span>
-                      </div>
-                      <div className="mb-3"><VibeBar score={h.vibeScore} /></div>
-                      <TierBadge tier={h.tier} />
-                    </motion.div>
-                  ))}
+
+                        {/* Avatar */}
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0"
+                          style={{ background: cfg.bg }}>
+                          {cfg.icon}
+                        </div>
+
+                        {/* Identity */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm font-bold font-body truncate ${isIdentified(h) ? "text-white" : "text-gray-500"}`}>
+                              {displayName(h)}
+                            </span>
+                            {!isIdentified(h) && (
+                              <span className="text-[10px] text-gray-600 font-body shrink-0">click to identify</span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-gray-600 font-body font-mono truncate">{h.address}</div>
+                        </div>
+
+                        {/* NFT count */}
+                        <div className="text-right shrink-0">
+                          <div className="text-sm font-bold font-display" style={{ color: cfg.color }}>{h.nfts}</div>
+                          <div className="text-[10px] text-gray-600 font-body">NFTs</div>
+                        </div>
+
+                        {/* Badges */}
+                        <div className="hidden sm:flex items-center gap-1.5 shrink-0">
+                          <TierBadge tier={h.tier} />
+                          {h.isAccumulating && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[rgba(46,255,46,0.12)] text-[#2EFF2E] whitespace-nowrap">
+                              📈 +{h.buysThisMonth}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Twitter link */}
+                        {(h.manualTwitter || h.twitter) && (
+                          <a href={`https://x.com/${h.manualTwitter || h.twitter}`}
+                            target="_blank" rel="noopener noreferrer"
+                            onClick={e => e.stopPropagation()}
+                            className="text-gray-600 hover:text-[#1DA1F2] transition-colors shrink-0 hidden sm:block">
+                            <ExternalLink size={13} />
+                          </a>
+                        )}
+                      </motion.div>
+                    );
+                  })}
+
+                  {filtered.length === 0 && !loading && (
+                    <div className="py-16 text-center text-gray-600 font-body">No holders match your filter.</div>
+                  )}
+                </div>
+              )}
+
+              {/* Unknown holders CTA */}
+              {!loading && counts.unknown > 0 && (
+                <div className="mt-4 p-4 rounded-2xl bg-[#121212] border border-[#FFE048]/10 flex items-center gap-3">
+                  <Crown size={16} className="text-[#FFE048] shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-white font-body">
+                      {counts.unknown} holders not yet identified
+                    </p>
+                    <p className="text-xs text-gray-500 font-body">
+                      Click any wallet to add their Twitter handle. Saves locally — persists between sessions.
+                    </p>
+                  </div>
+                  <button onClick={() => setTierFilter("unknown")}
+                    className="px-3 py-1.5 rounded-xl bg-[#FFE048]/10 text-[#FFE048] text-xs font-bold font-body hover:bg-[#FFE048]/20 transition-all shrink-0">
+                    View →
+                  </button>
+                </div>
+              )}
+
+              {/* Accumulator highlight */}
+              {!loading && counts.accumulating > 0 && (
+                <div className="mt-3 p-4 rounded-2xl bg-[#121212] border border-[#2EFF2E]/10 flex items-center gap-3">
+                  <TrendingUp size={16} className="text-[#2EFF2E] shrink-0" />
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-white font-body">
+                      {counts.accumulating} top holders actively buying this month
+                    </p>
+                    <p className="text-xs text-gray-500 font-body">
+                      These wallets are in accumulation mode — strong conviction signal.
+                    </p>
+                  </div>
+                  <button onClick={() => setTierFilter("accumulating")}
+                    className="px-3 py-1.5 rounded-xl bg-[#2EFF2E]/10 text-[#2EFF2E] text-xs font-bold font-body hover:bg-[#2EFF2E]/20 transition-all shrink-0">
+                    View →
+                  </button>
                 </div>
               )}
             </motion.div>
           )}
 
-          {/* ── Templates ──────────────────────────────────────────────── */}
+          {/* ── Templates Tab ────────────────────────────────────────────── */}
           {tab === "templates" && (
             <motion.div key="templates" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
               <div className="mb-6">
-                <h1 className="font-display text-3xl text-shimmer mb-1">Templates</h1>
+                <h1 className="font-display text-3xl text-shimmer mb-1">Message Templates</h1>
                 <p className="text-gray-400 font-body text-sm">
                   Viewing as{" "}
                   <span className="text-white font-bold">
                     {TEAM.find(m => m.id === activeMember)?.avatar}{" "}
                     {TEAM.find(m => m.id === activeMember)?.name}
                   </span>
-                  {" "}— switch in the header to see your copy.
+                  {" "}— switch team member in the header.
                 </p>
               </div>
 
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {TEMPLATES.map(t => {
                   const gif = templateGifs[t.id] ?? null;
-                  const isExpanded = expandedTemplate === t.id;
                   return (
                     <motion.div key={t.id}
-                      className={`rounded-2xl border bg-[#121212] overflow-hidden transition-all ${
-                        isExpanded ? "border-[#FFE048]" : "border-[#1F1F1F] hover:border-[#333]"
-                      }`}
-                      whileHover={{ y: isExpanded ? 0 : -2 }}>
-                      {/* Card top */}
-                      <button className="w-full p-5 text-left"
-                        onClick={() => setExpandedTemplate(isExpanded ? null : t.id)}>
-                        <div className="flex items-start justify-between mb-2">
+                      className="rounded-2xl border border-[#1F1F1F] bg-[#121212] overflow-hidden hover:border-[#333] transition-all"
+                      whileHover={{ y: -2 }}>
+                      <div className="p-5">
+                        <div className="flex items-start justify-between mb-3">
                           <span className="text-2xl">{t.emoji}</span>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide"
-                            style={{ color: t.color, background: `${t.color}18` }}>{t.category}</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                            style={{ color: t.color, background: `${t.color}18` }}>
+                            {t.name.toUpperCase()}
+                          </span>
                         </div>
-                        <div className="font-display text-base text-white mb-2">{t.name}</div>
                         <p className="text-sm text-gray-300 font-body leading-relaxed">
-                          "{t.bodies[activeMember]}"
+                          &ldquo;{t.bodies[activeMember]}&rdquo;
                         </p>
-                      </button>
-
-                      {/* GIF preview strip */}
-                      <AnimatePresence>
-                        {gif && (
-                          <motion.div className="px-5 pb-0"
-                            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-                            <div className="relative inline-block mb-3">
+                        <AnimatePresence>
+                          {gif && (
+                            <motion.div className="mt-3 relative inline-block"
+                              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={gif} alt="gif" className="max-h-24 rounded-xl" />
-                              <button onClick={() => setTemplateGifs(p => ({ ...p, [t.id]: null as unknown as string }))}
+                              <button onClick={() => setTemplateGifs(p => ({ ...p, [t.id]: null }))}
                                 className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-[#0D0D0D] border border-[#1F1F1F] flex items-center justify-center text-gray-400 hover:text-white">
                                 <X size={10} />
                               </button>
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      {/* Actions */}
-                      <div className="px-4 pb-4 pt-3 border-t border-[#1A1A1A] flex items-center gap-2">
-                        <GifPicker
-                          selected={gif}
-                          onSelect={url => setTemplateGifs(p => ({ ...p, [t.id]: url as string }))}
-                        />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                      <div className="px-4 pb-4 flex items-center gap-2 border-t border-[#1A1A1A] pt-3">
+                        <GifPicker selected={gif} onSelect={url => setTemplateGifs(p => ({ ...p, [t.id]: url }))} />
                         <button
-                          onClick={() => copyTemplateMessage(t, gif)}
-                          className="ml-auto flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#1F1F1F] text-gray-300 text-xs font-bold hover:bg-[#2a2a2a] transition-all">
+                          onClick={() => {
+                            const msg = t.bodies[activeMember];
+                            const full = gif ? `${msg}\n${gif}` : msg;
+                            navigator.clipboard.writeText(full);
+                            setCopiedTemplate(t.id);
+                            setTimeout(() => setCopiedTemplate(null), 2000);
+                          }}
+                          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1F1F1F] text-gray-300 text-xs font-bold hover:bg-[#2a2a2a] transition-all">
                           {copiedTemplate === t.id ? <Check size={11} className="text-[#2EFF2E]" /> : <Copy size={11} />}
                           {copiedTemplate === t.id ? "Copied!" : "Copy"}
                         </button>
                       </div>
-
-                      {/* All voices panel */}
-                      <AnimatePresence>
-                        {isExpanded && (
-                          <motion.div className="border-t border-[#1F1F1F]"
-                            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
-                            <div className="grid grid-cols-2 gap-px bg-[#1F1F1F]">
-                              {TEAM.map(m => (
-                                <div key={m.id} className="bg-[#0D0D0D] p-3">
-                                  <div className="flex items-center gap-1.5 mb-1">
-                                    <span className="text-sm">{m.avatar}</span>
-                                    <span className="text-[10px] font-bold text-white font-display">{m.name}</span>
-                                  </div>
-                                  <p className="text-xs text-gray-400 font-body leading-relaxed">"{t.bodies[m.id]}"</p>
-                                </div>
-                              ))}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
                     </motion.div>
                   );
                 })}
               </div>
             </motion.div>
           )}
+
         </AnimatePresence>
       </main>
 
@@ -932,6 +872,7 @@ export default function CRMPage() {
             holder={selectedHolder}
             activeMember={activeMember}
             onClose={() => setSelectedHolder(null)}
+            onSaveTwitter={saveTwitter}
           />
         )}
       </AnimatePresence>
