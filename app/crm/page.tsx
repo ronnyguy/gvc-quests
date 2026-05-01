@@ -117,6 +117,9 @@ interface RawHolder {
   tier: HolderTier;
   isAccumulating: boolean;
   buysThisMonth: number;
+  knownName: string;
+  knownTwitter: string;
+  knownDiscord: string;
 }
 
 interface Annotation {
@@ -449,7 +452,11 @@ export default function CRMPage() {
       const anns = loadAnnotations();
       const withAnns: Holder[] = data.holders.map((h: RawHolder) => ({
         ...h,
-        annotation: anns[h.address.toLowerCase()] || { name: "", twitter: "", notes: "" },
+        annotation: anns[h.address.toLowerCase()] || {
+          name: h.knownName || "",
+          twitter: h.knownTwitter || "",
+          notes: "",
+        },
       }));
       setHolders(withAnns);
       setFetchedAt(data.fetchedAt);
